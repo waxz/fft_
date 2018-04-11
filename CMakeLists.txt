@@ -3,7 +3,7 @@ project(fft_wrapper)
 set(CMAKE_CXX_STANDARD 98)
 
 find_package(catkin REQUIRED COMPONENTS
-        cmake_modules roscpp
+        cmake_modules roscpp laser_simulator
         )
 catkin_package(
         INCLUDE_DIRS include
@@ -17,7 +17,7 @@ include_directories(
         ${catkin_INCLUDE_DIRS} )
 
 add_library(${PROJECT_NAME} src/fft_wrapper.cpp include/fftw++/fftw++.cc)
-target_link_libraries(${PROJECT_NAME}  fftw3 fftw3_omp)
+target_link_libraries(${PROJECT_NAME}  ${catkin_LIBRARIES} fftw3 fftw3_omp)
 
 
 

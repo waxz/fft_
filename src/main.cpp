@@ -1,6 +1,5 @@
 #include <iostream>
-#include <ros/ros.h>
-#include <sensor_msgs/LaserScan.h>
+
 
 
 #include <fft_wrapper/fft_wrapper.h>
@@ -14,31 +13,16 @@ using std::cout;
 using std::endl;
 
 
-void find_valid(){
-    // get normal diff
-    // assume direction is correct
-    // get all point's diff
-    // sort, remove extreme value
-    // get diff thresh
-    // set valid value to each point
-
-}
-
-//
-void fft_loop(){
-    // refine result with loop
-
-    // maybe loop 3 times
-
-    // if final error converge , consider fft successful
-
-
-}
-
-
 int main() {
+    valarray<double > signal(1,4);
+    for (int i=0;i<4;i++){
+        signal[i] = i;
+    }
+    valarray<double> real, imag;
 
-    fft();
+    fft_1d(signal, real, imag);
+
+    cout<<real[0];
 
 
 
