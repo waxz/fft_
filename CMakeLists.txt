@@ -16,10 +16,11 @@ include_directories(
         src
         ${catkin_INCLUDE_DIRS} )
 
+add_library(${PROJECT_NAME} src/fft_wrapper.cpp include/fftw++/fftw++.cc)
+target_link_libraries(${PROJECT_NAME}  fftw3 fftw3_omp)
 
 
-add_executable(${PROJECT_NAME} src/main.cpp  include/fftw++/fftw++.cc)
-target_link_libraries(${PROJECT_NAME}  fftw3 fftw3_omp )
+
 
 install(
         TARGETS ${PROJECT_NAME}
@@ -27,3 +28,7 @@ install(
         LIBRARY DESTINATION ${CATKIN_PACKAGE_LIB_DESTINATION}
         RUNTIME DESTINATION ${CATKIN_PACKAGE_BIN_DESTINATION}
 )
+
+
+add_executable(${PROJECT_NAME}_node src/main.cpp  )
+target_link_libraries(${PROJECT_NAME}_node  ${PROJECT_NAME}  )
