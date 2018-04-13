@@ -4,7 +4,7 @@
 // Compile with:
 // g++ -I .. -fopenmp example1r.cc ../fftw++.cc -lfftw3 -lfftw3_omp
 
-using namesdpace std;
+using namespace std;
 using namespace utils;
 using namespace Array;
 using namespace fftwpp;
