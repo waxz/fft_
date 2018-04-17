@@ -8,6 +8,8 @@
 #include <ros/ros.h>
 #include <sensor_msgs/LaserScan.h>
 #include <geometry_msgs/Pose.h>
+#include <tf/transform_datatypes.h>
+#include <tf/transform_listener.h>
 #include <laser_simulator/laser_simulator.h>
 #include <vector>
 #include <valarray>
@@ -24,7 +26,8 @@ private:
     ros::NodeHandle nh_private_;
     Laser_Simulator *gen_ptr_;
     valarray<double> real_, imag_;
-    double  diff_x, diff_y, rad;
+    void init_params();
+    double  diff_x, diff_y, rad, signal_diff_;
 
     sensor_msgs::LaserScan scan_info_;
 
@@ -34,7 +37,15 @@ private:
 
 public:
     FFT_Fitter(ros::NodeHandle nh, ros::NodeHandle nh_private);
+    // call fftw
     void transform(const sensor_msgs::LaserScan &scan, geometry_msgs::Pose &pose);
+    // wrap fftw, and transform base_pose
+    void get_base_pose(const sm::LaserScan &sensor_scan, gm::Pose &init_pose,
+                       const tf::Transform &base_laser_tf);
+
+    // compute match error, check amcl match accurucy, csm accurucy
+
+
 
 };
 

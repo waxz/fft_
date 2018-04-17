@@ -46,7 +46,7 @@ void fft_1d(valarray<float> signal,  valarray<double> &real,  valarray<double> &
 
     for(unsigned int i=0; i < n; i++) f[i]=signal[i];
 
-    cout << endl << "input:" << endl << f << endl;
+//    cout << endl << "input:" << endl << f << endl;
 
     Forward.fft(f,F);
 
@@ -86,6 +86,8 @@ void FFT_Fitter::transform(const sensor_msgs::LaserScan &scan,  geometry_msgs::P
 
     for (int i=0;i<6;i++){
         loop(pose);
+        if (signal_diff_ < 0.0001)
+            break;
     }
 
 }
@@ -103,6 +105,9 @@ void FFT_Fitter::loop(geometry_msgs::Pose &pose) {
     scan_ref_ = wn::vector_valarray<float>(map_scan_ptr->ranges);
     signal_ = scan_ref_ - scan_sens_;
     adaptive_remove();
+    if (signal_diff_ < 0.0001)
+        return;
+
     fft_1d(signal_, real_, imag_);
 //    double N = real_.size();
 //    real_ = real_/N;
@@ -122,7 +127,31 @@ void FFT_Fitter::adaptive_remove() {
     valarray<float> abs_diff = abs(signal_);
     wn::sort<float >(abs_diff);
     float diff_ave = (0.5*2.0)*(abs_diff[int(0.2*abs_diff.size())] + abs_diff[int(0.8*abs_diff.size())]);
-    signal_ = valarray<float>(signal_[(abs(signal_)<diff_ave ) && (scan_ref_ < scan_info_.range_max) && (scan_sens_ < scan_info_.range_max)   ]) ;
+    signal_ = valarray<float>(signal_[(abs(signal_)<diff_ave ) && (scan_ref_ < scan_info_.range_max) && (scan_sens_ < scan_info_.range_max)]);
+    if (signal_.size() < 0.5*scan_info_.ranges.size()){
+        signal_diff_ = 0.0;
+        return;
+    }
 
-    printf("23333");
+    signal_diff_ = (abs(signal_)).sum()/(signal_.size());
+
+    printf("\n signal_ length %d\n",signal_.size());
+}
+
+void FFT_Fitter::get_base_pose(const sm::LaserScan &sensor_scan, gm::Pose &base_pose,
+                               const tf::Transform &base_laser_tf) {
+
+    gm::Pose laser_pose;
+
+    tf::Pose base_pose_tf, laser_pose_tf;
+    tf::poseMsgToTF(base_pose, base_pose_tf);
+    tf::poseTFToMsg(base_pose_tf*base_laser_tf,laser_pose);
+
+
+    transform(sensor_scan,laser_pose);
+
+    tf::poseMsgToTF(laser_pose, laser_pose_tf);
+    tf::poseTFToMsg(laser_pose_tf*base_laser_tf.inverse(),base_pose);
+
+
 }

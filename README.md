@@ -4,15 +4,16 @@ http://www.fftw.org/download.html
 
 how to install
 
+    make clean
     ./configure --enable-shared
     make
     sudo make install
      
 add flag ./configure --enable-shared  for bug 
+/usr/bin/ld: /usr/local/lib/libfftw3f.a(mapflags.o): relocation R_X86_64_32 against `.rodata' can not be used when making a shared object; recompile with -fPIC
+/usr/local/lib/libfftw3f.a: error adding symbols: Bad value
 
-    /usr/bin/ld: /usr/local/lib/libfftw3f.a(mapflags.o): relocation R_X86_64_32 against `.rodata' can not be used when making a shared object; recompile with -fPIC
-    /usr/local/lib/libfftw3f.a: error adding symbols: Bad value
-
+    sudo ln -s ./x86_64-linux-gnu/libfftw3_omp.so.3 libfftw3_omp.so
 2. [fftw++](https://github.com/dealias/fftwpp) , c++ api for fftw
 
 http://fftwpp.sourceforge.net/
