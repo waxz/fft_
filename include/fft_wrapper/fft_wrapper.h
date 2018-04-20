@@ -28,6 +28,8 @@ private:
     valarray<double> real_, imag_;
     void init_params();
     double  diff_x, diff_y, rad, signal_diff_;
+    float low_end_, high_end_, outlier_max_,final_diff_, valid_per_;
+    int iteration_;
 
     sensor_msgs::LaserScan scan_info_;
 

@@ -69,6 +69,7 @@ void fft_1d(valarray<float> signal,  valarray<double> &real,  valarray<double> &
 
 FFT_Fitter::FFT_Fitter(ros::NodeHandle nh, ros::NodeHandle nh_private): nh_(nh), nh_private_(nh_private) {
     gen_ptr_ = new Laser_Simulator(nh, nh_private);
+    init_params();
 
 }
 
@@ -84,9 +85,9 @@ void FFT_Fitter::transform(const sensor_msgs::LaserScan &scan,  geometry_msgs::P
     ROS_ASSERT(scan_sens_.size() > 0);
 
 
-    for (int i=0;i<6;i++){
+    for (int i=0;i<iteration_;i++){
         loop(pose);
-        if (signal_diff_ < 0.0001)
+        if (signal_diff_ < final_diff_)
             break;
     }
 
@@ -105,7 +106,7 @@ void FFT_Fitter::loop(geometry_msgs::Pose &pose) {
     scan_ref_ = wn::vector_valarray<float>(map_scan_ptr->ranges);
     signal_ = scan_ref_ - scan_sens_;
     adaptive_remove();
-    if (signal_diff_ < 0.0001)
+    if (signal_diff_ < final_diff_)
         return;
 
     fft_1d(signal_, real_, imag_);
@@ -126,16 +127,21 @@ void FFT_Fitter::adaptive_remove() {
     // remove point difference > e, with adaptive
     valarray<float> abs_diff = abs(signal_);
     wn::sort<float >(abs_diff);
-    float diff_ave = (0.5*2.0)*(abs_diff[int(0.2*abs_diff.size())] + abs_diff[int(0.8*abs_diff.size())]);
+    float low = abs_diff[int(low_end_*abs_diff.size())];
+    float high = abs_diff[int(high_end_*abs_diff.size())];
+    valarray<float> slect_diff = (abs_diff[(abs_diff>low) && (abs_diff < high) ]);
+    //float diff_ave = outlier_max_*slect_diff.sum()/float(slect_diff.size());
+    float diff_ave = (0.5*outlier_max_)*(low+ high);
+
     signal_ = valarray<float>(signal_[(abs(signal_)<diff_ave ) && (scan_ref_ < scan_info_.range_max) && (scan_sens_ < scan_info_.range_max)]);
-    if (signal_.size() < 0.5*scan_info_.ranges.size()){
+    if (signal_.size() < valid_per_*scan_info_.ranges.size()){
         signal_diff_ = 0.0;
         return;
     }
 
     signal_diff_ = (abs(signal_)).sum()/(signal_.size());
 
-    printf("\n signal_ length %d\n",signal_.size());
+    printf("\n signal_ length %d\n",int(signal_.size()));
 }
 
 void FFT_Fitter::get_base_pose(const sm::LaserScan &sensor_scan, gm::Pose &base_pose,
@@ -153,5 +159,21 @@ void FFT_Fitter::get_base_pose(const sm::LaserScan &sensor_scan, gm::Pose &base_
     tf::poseMsgToTF(laser_pose, laser_pose_tf);
     tf::poseTFToMsg(laser_pose_tf*base_laser_tf.inverse(),base_pose);
 
+
+}
+
+void FFT_Fitter::init_params() {
+    if (!nh_private_.getParam("low_end", low_end_))
+        low_end_ = 0.25;
+    if (!nh_private_.getParam("high_end_", high_end_))
+        high_end_ = 0.75;
+    if (!nh_private_.getParam("outlier_max", outlier_max_))
+        outlier_max_ = 2.0;
+    if (!nh_private_.getParam("final_diff", final_diff_))
+        final_diff_ = 0.01;
+    if (!nh_private_.getParam("iteration", iteration_))
+        iteration_ = 4;
+    if (!nh_private_.getParam("valid_per", valid_per_))
+        valid_per_ = 0.5;
 
 }
