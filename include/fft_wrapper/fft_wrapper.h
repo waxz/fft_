@@ -25,13 +25,16 @@ private:
     ros::NodeHandle nh_;
     ros::NodeHandle nh_private_;
     Laser_Simulator *gen_ptr_;
+    bool failure_;
     valarray<double> real_, imag_;
     void init_params();
     double  diff_x, diff_y, rad, signal_diff_;
     float low_end_, high_end_, outlier_max_,final_diff_, valid_per_;
+    float outlier_limit_low_;
     int iteration_;
 
     sensor_msgs::LaserScan scan_info_;
+    sensor_msgs::LaserScan  map_scan_;
 
     valarray<float> scan_sens_, scan_ref_,signal_;
     void loop(geometry_msgs::Pose &pose);
@@ -42,7 +45,7 @@ public:
     // call fftw
     void transform(const sensor_msgs::LaserScan &scan, geometry_msgs::Pose &pose);
     // wrap fftw, and transform base_pose
-    void get_base_pose(const sm::LaserScan &sensor_scan, gm::Pose &init_pose,
+    double get_base_pose(const sm::LaserScan &sensor_scan, gm::Pose &init_pose,
                        const tf::Transform &base_laser_tf);
 
     // compute match error, check amcl match accurucy, csm accurucy

@@ -42,13 +42,13 @@ int main(int argc, char **argv) {
     // must fill orientation.w
     pose.orientation.w = 1.0;
 
-    sensor_msgs::LaserScan::Ptr scan_sens = gen.get_laser(pose);
+    sensor_msgs::LaserScan scan_sens = gen.get_laser(pose);
 
     pose.position.x = 2.4;
     pose.position.y = 3.3;
     pose.position.z = 0.29;
 
-    fft_fitter.transform(*scan_sens,pose);
+    fft_fitter.transform(scan_sens,pose);
 //
     printf("fft pose %f,%f",pose.position.x,pose.position.y);
 

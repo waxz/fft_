@@ -70,6 +70,7 @@ void fft_1d(valarray<float> signal,  valarray<double> &real,  valarray<double> &
 FFT_Fitter::FFT_Fitter(ros::NodeHandle nh, ros::NodeHandle nh_private): nh_(nh), nh_private_(nh_private) {
     gen_ptr_ = new Laser_Simulator(nh, nh_private);
     init_params();
+    failure_ = false;
 
 }
 
@@ -80,15 +81,15 @@ void FFT_Fitter::transform(const sensor_msgs::LaserScan &scan,  geometry_msgs::P
     }
 
     // scan to valarray
-    ROS_ASSERT(scan.ranges.size() > 0);
     scan_sens_ = wn::vector_valarray<float>(scan.ranges);
-    ROS_ASSERT(scan_sens_.size() > 0);
 
 
     for (int i=0;i<iteration_;i++){
         loop(pose);
         if (signal_diff_ < final_diff_)
             break;
+        if (failure_)
+            return;
     }
 
 }
@@ -101,9 +102,14 @@ void FFT_Fitter::loop(geometry_msgs::Pose &pose) {
     // transform signal
 
     // update  pose
-    sensor_msgs::LaserScan::Ptr map_scan_ptr = gen_ptr_->get_laser(pose);
-    ROS_ASSERT(map_scan_ptr->ranges.size() > 0);
-    scan_ref_ = wn::vector_valarray<float>(map_scan_ptr->ranges);
+    map_scan_  = gen_ptr_->get_laser(pose);
+    if (map_scan_.ranges.empty()){
+        failure_ = true;
+        ROS_ERROR("invalid laser pose!! cancle fft!!");
+
+        return;
+    }
+    scan_ref_ = wn::vector_valarray<float>(map_scan_.ranges);
     signal_ = scan_ref_ - scan_sens_;
     adaptive_remove();
     if (signal_diff_ < final_diff_)
@@ -125,13 +131,13 @@ void FFT_Fitter::loop(geometry_msgs::Pose &pose) {
 
 void FFT_Fitter::adaptive_remove() {
     // remove point difference > e, with adaptive
-    valarray<float> abs_diff = abs(signal_);
+    valarray<float> abs_diff = abs(valarray<float>(signal_[signal_<outlier_limit_low_]));
     wn::sort<float >(abs_diff);
     float low = abs_diff[int(low_end_*abs_diff.size())];
     float high = abs_diff[int(high_end_*abs_diff.size())];
     valarray<float> slect_diff = (abs_diff[(abs_diff>low) && (abs_diff < high) ]);
-    //float diff_ave = outlier_max_*slect_diff.sum()/float(slect_diff.size());
-    float diff_ave = (0.5*outlier_max_)*(low+ high);
+    float diff_ave = outlier_max_*slect_diff.sum()/float(slect_diff.size());
+//    float diff_ave = (0.5*outlier_max_)*(low+ high);
 
     signal_ = valarray<float>(signal_[(abs(signal_)<diff_ave ) && (scan_ref_ < scan_info_.range_max) && (scan_sens_ < scan_info_.range_max)]);
     if (signal_.size() < valid_per_*scan_info_.ranges.size()){
@@ -144,8 +150,9 @@ void FFT_Fitter::adaptive_remove() {
     printf("\n signal_ length %d\n",int(signal_.size()));
 }
 
-void FFT_Fitter::get_base_pose(const sm::LaserScan &sensor_scan, gm::Pose &base_pose,
+double FFT_Fitter::get_base_pose(const sm::LaserScan &sensor_scan, gm::Pose &base_pose,
                                const tf::Transform &base_laser_tf) {
+    failure_ = false;
 
     gm::Pose laser_pose;
 
@@ -155,9 +162,19 @@ void FFT_Fitter::get_base_pose(const sm::LaserScan &sensor_scan, gm::Pose &base_
 
 
     transform(sensor_scan,laser_pose);
+    if (failure_){
+        return 100;
+    }
 
     tf::poseMsgToTF(laser_pose, laser_pose_tf);
     tf::poseTFToMsg(laser_pose_tf*base_laser_tf.inverse(),base_pose);
+
+
+    double match_error= double((abs(signal_)).sum()/float(signal_.size()));
+
+    return match_error;
+
+
 
 
 }
@@ -175,5 +192,6 @@ void FFT_Fitter::init_params() {
         iteration_ = 4;
     if (!nh_private_.getParam("valid_per", valid_per_))
         valid_per_ = 0.5;
-
+    if (!nh_private_.getParam("outlier_limit_low", outlier_limit_low_))
+        outlier_limit_low_ = 0.5;
 }
