@@ -42,6 +42,8 @@ private:
 
 public:
     FFT_Fitter(ros::NodeHandle nh, ros::NodeHandle nh_private);
+
+    ~FFT_Fitter();
     // call fftw
     void transform(const sensor_msgs::LaserScan &scan, geometry_msgs::Pose &pose);
     // wrap fftw, and transform base_pose

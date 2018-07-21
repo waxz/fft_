@@ -74,11 +74,13 @@ FFT_Fitter::FFT_Fitter(ros::NodeHandle nh, ros::NodeHandle nh_private): nh_(nh),
 
 }
 
+FFT_Fitter::~FFT_Fitter() {
+    delete gen_ptr_;
+}
+
 void FFT_Fitter::transform(const sensor_msgs::LaserScan &scan,  geometry_msgs::Pose &pose) {
 
-    if (scan_info_.ranges.empty()){
-        scan_info_ = scan;
-    }
+    scan_info_ = scan;
 
     // scan to valarray
     scan_sens_ = wn::vector_valarray<float>(scan.ranges);
@@ -102,7 +104,7 @@ void FFT_Fitter::loop(geometry_msgs::Pose &pose) {
     // transform signal
 
     // update  pose
-    map_scan_  = gen_ptr_->get_laser(pose);
+    map_scan_ = gen_ptr_->get_laser(pose, scan_info_);
     if (map_scan_.ranges.empty()){
         failure_ = true;
         ROS_ERROR("invalid laser pose!! cancle fft!!");
